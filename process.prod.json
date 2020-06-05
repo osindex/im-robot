@@ -1,0 +1,10 @@
+{
+  "apps": [
+    {
+      "name": "im-robot",
+      "cwd": "./",
+      "script": "app.js",
+      "watch": false
+    },
+  ]
+}
