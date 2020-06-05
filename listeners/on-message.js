@@ -231,9 +231,13 @@ async function onIsWho(wechaty, who, msg) {
         if (cmd > 0) {
             const group = await getGroup(cmd)
             if (group) {
+                let extra = { type: group.type }
                 // 加入场景
                 setScene(who.id, group.type)
-                const selfId = await joinGroup(who.id, cmd, { type: group.type })
+                if (group.user_id == who.id) {
+                  extra.self_id = 1
+                }
+                const selfId = await joinGroup(who.id, cmd, extra)
                 await msg.say('你已进入：' + group.name + '你的序号是：')
             } else {
                 await msg.say('房间号不存在！')
@@ -259,7 +263,7 @@ async function onIsWho(wechaty, who, msg) {
 下面请[${gameInfo.first}]号玩家发言`
                         // 当前发言人 playsList 存入redis
                         gameInfo.playsList.map(e => {
-                            e.msg = `${e.role}【${e.word}】`
+                            e.msg = `${e.self_id}号 - ${e.role}【${e.word}】`
                             e.live = true //存活状态
                             e.canSay = gameInfo.first == e.self_id
                             // 用户进入激活场景
