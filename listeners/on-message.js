@@ -238,7 +238,7 @@ async function onIsWho(wechaty, who, msg) {
                   extra.self_id = 1
                 }
                 const selfId = await joinGroup(who.id, cmd, extra)
-                await msg.say('你已进入：' + group.name + '你的序号是：')
+                await msg.say('你已进入：' + group.name + '你的序号是：' + selfId)
             } else {
                 await msg.say('房间号不存在！')
             }
@@ -322,6 +322,7 @@ join:${roomId}`)
         } else {
             const me = gameInfo.playsList.find(e => { return e.vote && e.user_id == who.id })
             if (me) {
+                me.vote = false //不能再次投票
                 const voted = gameInfo.playsList[current - 1]
                 voted.count += 1
                 const liveMan = gameInfo.playsList.filter(e => {
@@ -365,7 +366,7 @@ join:${roomId}`)
                                 element.msg = ''
                                 element.count = 0
                                 element.vote = false
-                                element.live = element === maxCountMan || element.live
+                                element.live = element === maxCountMan ? false: element.live
                                 // 投票结束
                                 return element
                             })
