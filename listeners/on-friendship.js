@@ -4,7 +4,7 @@
 const { Friendship } = require('wechaty');
 const { delay } = require('../utils')
 const { register } = require('../models/user');
-const config = require('../config')
+const { getSetting } = require('../models/cache');
 /**
  * 自动同意好友请求
  */
@@ -15,13 +15,15 @@ const onFriendship = () => {
             await delay(200)
             switch (friendship.type()) {
             case Friendship.Type.Receive:
-                if (friendship.hello() === config.autoFriend) {
-                    logMsg = 'accepted automatically because verify messsage is "' + config.autoFriend + '"'
+                const autoFriend = await getSetting('autoFriend')
+                if (friendship.hello() === autoFriend) {
+                    logMsg = 'accepted automatically because verify messsage is "' + autoFriend + '"'
                     console.log('before accept')
                     await friendship.accept()
                     // if want to send msg , you need to delay sometimes
                     await new Promise(r => setTimeout(r, 1000))
-                    const hello = ['hello.', config.welcome]
+                    const welcome = await getSetting('welcome')
+                    const hello = ['hello.', welcome]
                     const e = friendship.contact()
                     await e.say(hello[round(Math.random())])
                     // 注册到数据库

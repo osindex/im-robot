@@ -1,8 +1,8 @@
 const schedule = require('../schedule');
-const config = require('../config');
 const untils = require('../utils');
 const api = require('../api');
 const { log } = require('wechaty')
+const { getSetting } = require('../models/cache');
 /**
  * 8点40定时给指定群发送消息
  */
@@ -14,10 +14,11 @@ async function onRoom(wechaty) {
         let today = untils.dayjs().format('YYYY-MM-DD HH:mm dddd') //获取今天的日期
         let one = await api.getOne() //获取每日一句
         const englishData = await api.getEnglishOne() //英语一句话
-        let poison = await api.getSoup() //毒鸡汤
+        const poison = await api.getSoup() //毒鸡汤
         const str = `${today}\n元气满满的一天开始啦,要加油噢^_^\n\n每日一句：\n${one}\n\n英语一句话：\n${englishData}\n\n毒鸡汤：\n${poison}`
         // const str = 'etc...'
-        config.SCHEDULEROOM.forEach(async roomName => {
+        const managerRoom = await getSetting('room')
+        managerRoom.forEach(async roomName => {
             const room = await wechaty.Room.find({ topic: roomName })
             console.log(room)
             if (room) {

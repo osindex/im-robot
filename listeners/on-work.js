@@ -22,9 +22,9 @@ async function onUserInit(bot) {
 }
 async function delRoom() {
     //匹配规则可参考 schedule/index.js
-    const time = '0 * * * * *' //每分钟触发一次
+    const time = '5 * * * * *' //每分钟触发一次
     schedule.setSchedule(time, async (fireDate) => {
-        console.log('This job was supposed to run at ' + fireDate + ', but actually ran at ' + new Date());
+        console.log(fireDate + ' del groups');
         await delGroup()
     })
 }

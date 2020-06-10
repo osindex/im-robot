@@ -1,18 +1,16 @@
-var { wodi } = require('../../utils/words');
+// var { wodi } = require('../../utils/words'); // 采用数据库数据
+const { getGameWordRand } = require('../../models/cache');
+
 var { randomNum, deepClone } = require('../../utils');
 
 var Word = function () {
 
 }
 
-Word.randomWord = function () {
-    return wodi[randomNum(wodi.length - 1)];
+Word.randomWord = async function () {
+    return JSON.parse(await getGameWordRand('iswho', 1));
 }
-/**
- * 定义当前轮次游戏角色数目
- * @param  {Number} playLength [游戏总人数]
- * @return {Array}             [平民、卧底、白板每种角色的具体人数]
- */
+// 定义当前轮次游戏角色数目
 Word.defRoleNum = function (playLength) {
     let Civilian, Undercover = 0
     Civilian = parseInt(playLength / 2) + 1 // 一半 + 1

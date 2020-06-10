@@ -1,19 +1,18 @@
 /**
  * 核心逻辑
  */
-const { Message, UrlLink } = require('wechaty')
+const { Message, FileBox, UrlLink } = require('wechaty')
 const path = require('path')
-const { FileBox } = require('file-box')
 const api = require('../api')
-const config = require('../config')
 const { dayjs, colorRGBtoHex, colorHex, delay, Decrypt, Encrypt } = require('../utils')
 const { setScene, hasScene, getScene, delScene } = require('../models/redis');
 const isWho = require('./games/iswho');
 const { createGroup, getGroup, getGroups, mineGroups, currentGroup } = require('../models/group');
 const { joinGroup, levelGroupByType, userGroupWithoutSelf } = require('../models/group_user');
 const { toFriends } = require('../utils/broadcast');
+const { onManager } = require('./on-manager');
+const cache = require('../models/cache');
 
-const allKeywords = config.welcome
 /**
  * 处理消息
  */
@@ -47,10 +46,12 @@ const onMessage = () => {
  * 处理用户消息
  */
 async function onPeopleMessage(wechaty, msg) {
+    const welcome = await cache.getSetting('welcome')
     //获取发消息人
     const contact = msg.from()
     //对config配置文件中 ignore的用户消息不必处理
-    if (config.IGNORE.includes(contact.payload.name)) return
+    const ignore = await cache.getSetting('ignore')
+    if (ignore.includes(contact.name())) return
     await delay(200) // 统一延迟
     // 在场景中
     const sceneValue = await getScene(contact.id)
@@ -68,18 +69,19 @@ async function onPeopleMessage(wechaty, msg) {
         }
     } else {
         let content = msg.text().trim() // 消息内容 使用trim()去除前后空格
+        const managerRoom = await cache.getSetting('room')
         // 不在场景
         if (content === '菜单') {
             await delay(100)
-            await msg.say(allKeywords)
+            await msg.say(welcome)
         } else if (content === '图片') {
             const fileBox = FileBox.fromFile(path.join(__dirname, '../imgs/dog.jpg'))
             await msg.say('dog!')
             await delay(200)
             await msg.say(fileBox)
         } else if (parseInt(content) === 1) {
-            await msg.say('请回复以下任一群名：' + config.SCHEDULEROOM.join(","))
-        } else if (config.SCHEDULEROOM.includes(content)) {
+            await msg.say('请回复以下任一群名：' + managerRoom.join(","))
+        } else if (managerRoom.includes(content)) {
             const webRoom = await wechaty.Room.find({
                 topic: content
             })
@@ -114,14 +116,21 @@ async function onPeopleMessage(wechaty, msg) {
             const { title, content } = await api.getGodReply()
             await delay(200)
             await msg.say(`标题：${title}\n\n神回复：${content}`)
+        } else if (content === '英语一句话' || parseInt(content) === 5) {
+            const res = await api.getEnglishOne()
+            await delay(200)
+            await msg.say(res)
         } else if (content === '客服') {
-            const contactCard = await wechaty.Contact.find({ alias: config.MYSELF }) // change 'lijiarui' to any of the room member
-            await msg.say(contactCard)
+            const adminList = await cache.getSetting('admin')
+            if (adminList[0]) {
+                const contactCard = await wechaty.Contact.find({ alias: adminList[0] }) // change 'lijiarui' to any of the room member
+                await msg.say(contactCard)
+            }
         } else {
             const noUtils = await onUtilsMessage(msg)
             if (noUtils) {
                 await delay(200)
-                await msg.say(allKeywords)
+                await msg.say(welcome)
             }
         }
     }
@@ -131,8 +140,15 @@ async function onPeopleMessage(wechaty, msg) {
  */
 async function onWebRoomMessage(wechaty, msg) {
     const isText = msg.type() === Message.Type.Text
-    console.log(isText, 'isText')
-    if (isText) {
+    const room = msg.room()
+    console.log(msg.type(), 'onWebRoomMessage Message.Type')
+    console.log(room.topic())
+    if (await room.topic() === '带头大哥的群') {
+        // 此群可管理机器人 特定群名 不作缓存
+        await delay(200) //统一延迟
+        await onManager(wechaty, msg)
+    } else if (isText) {
+        // 严格来说应该分开
         const content = msg.text().trim() // 消息内容
         if (content === '毒鸡汤') {
             let poison = await api.getSoup()
@@ -142,14 +158,18 @@ async function onWebRoomMessage(wechaty, msg) {
             const res = await api.getEnglishOne()
             await delay(200)
             await msg.say(res)
+        } else if (content === '神回复') {
+            const { title, content } = await api.getGodReply()
+            await delay(200)
+            await msg.say(`标题：${title}\n\n神回复：${content}`)
         } else if (content.includes('踢@')) {
             // 踢人功能  群里发送  踢@某某某  即可
-            const room = msg.room()
             //获取发消息人
             const contact = msg.from()
             const alias = await contact.alias()
-            //如果是机器人好友且备注是自己的大号备注  才执行踢人操作
-            if (contact.friend() && alias === config.MYSELF) {
+            //如果是机器人好友且是管理员的备注 才执行踢人操作
+            const adminList = await cache.getSetting('admin')
+            if (contact.friend() && adminList.includes(alias)) {
                 const delName = content.replace('踢@', '').trim()
                 const delContact = await room.member({ name: delName })
                 await room.del(delContact)
@@ -400,9 +420,9 @@ join:${roomId}`)
         const sceneValue = await getScene(who.id, 'active')
         if (sceneValue) {
             let gameInfo = JSON.parse(await getScene(sceneValue, 'sceneInfo'))
-            console.log(typeof gameInfo)
+            // console.log(typeof gameInfo)
             // console.log(gameInfo)
-            console.log('gameInfo')
+            // console.log('gameInfo')
             let current = 0
             let me = gameInfo.playsList.find((element, index) => {
                 current = element.self_id
@@ -469,6 +489,7 @@ async function overIsWho(wechaty, gameInfo, voted) {
     }
     return gameInfo
 }
+
 /**
  * utils消息处理
  */

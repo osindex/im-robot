@@ -8,7 +8,7 @@ if (config.redis.auth) {
 client.on("error", function (err) {
     console.log('redis-err:', err);
 });
-async function delKey(key) {
+async function delKey(...key) {
     return await new Promise((resolve) => {
         client.del(key, (err, data) => {
             return resolve(data);
@@ -26,9 +26,15 @@ async function expireKey(key, seconds = 60 * 60 * 2) {
 // 将值 value 关联到 key ，并将 key 的过期时间设为 seconds (以秒为单位)。
 async function setKey(key, svalue, seconds = 60 * 5) {
     return await new Promise((resolve) => {
-        client.setex(key, seconds, svalue, (err, data) => {
-            return resolve(data);
-        });
+        if (seconds) {
+            client.setex(key, seconds, svalue, (err, data) => {
+                return resolve(data);
+            });
+        } else {
+            client.set(key, svalue, (err, data) => {
+                return resolve(data);
+            });
+        }
     });
 }
 async function getKey(key) {
@@ -127,8 +133,14 @@ module.exports = {
     getScene,
     delScene,
     allScene,
+    saddScene,
     setKey,
     getKey,
     delKey,
-    expireKey
+    expireKey,
+    sismemberScene,
+    smembersScene,
+    scardScene,
+    sremScene,
+    srandmemberScene
 }

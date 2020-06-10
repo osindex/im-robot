@@ -155,7 +155,7 @@ npm start
 - [ ] 生活向文字冒险游戏
 
 ### 谁是卧底小游戏
-![Image text](/imgs/A20200605161518.png)
-![Image text](/imgs/B20200605161653.png)
-![Image text](/imgs/C20200605161807.png)
+![Image text](/imgs/a.png)
+![Image text](/imgs/b.png)
+![Image text](/imgs/c.png)
 ![Image text](/imgs/qrbread.jpg)
